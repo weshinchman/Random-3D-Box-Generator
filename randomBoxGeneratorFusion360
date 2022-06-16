@@ -1,0 +1,120 @@
+#Author-Wes Hinchman
+#Description-I was trying to make a simple 3D box so that I can test the heat mapping feature
+            #but now we are here...
+
+from random import seed
+import adsk.core, adsk.fusion, traceback
+
+def run(context):
+    ui = None
+    try:
+        app = adsk.core.Application.get()
+        ui = app.userInterface
+
+        # Create a document.
+        doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+
+        product = app.activeProduct
+        design = adsk.fusion.Design.cast(product)
+
+        # Get the root component of the active design
+        rootComp = design.rootComponent
+
+        # Get extrude features
+        extrudes = rootComp.features.extrudeFeatures
+
+        # Create a sketch
+        sketches = rootComp.sketches
+        sketch = sketches.add(rootComp.yZConstructionPlane)
+        print(sketch.revisionId)
+
+        # Create an object collection for the points.
+        points = adsk.core.ObjectCollection.create()
+
+        # Get sketch lines
+        sketchLines = sketch.sketchCurves.sketchLines
+
+        # Import random numbers
+        from random import seed
+        from random import randint
+        # Define random intetger value
+        value = randint(1,20)
+        
+        # Create sketch rectangle
+        startPoint = adsk.core.Point3D.create(0, 0, 0)
+        endPoint = adsk.core.Point3D.create(value, value, 0)
+        sketchLines.addTwoPointRectangle(startPoint, endPoint)
+        print(sketch.revisionId)
+
+        # Get the profile defined by the rectangle
+        prof = sketch.profiles.item(0)
+
+        #Define the distance of the extrusion
+        distance = adsk.core.ValueInput.createByReal(10)
+        extrude1 = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)        
+        
+        # Get the extrusion body
+        body1 = extrude1.bodies.item(0)
+        body1.name = "Box"
+
+        # Get the state of the extrusion
+        health = extrude1.healthState
+        if health == adsk.fusion.FeatureHealthStates.WarningFeatureHealthState or health == adsk.fusion.FeatureHealthStates.ErrorFeatureHealthState:
+            message = extrude1.errorOrWarningMessage
+        
+        # Get the state of timeline object
+        timeline = design.timeline
+        timelineObj = timeline.item(timeline.count - 1);
+        health = timelineObj.healthState
+        message = timelineObj.errorOrWarningMessage
+        
+        # Create an extrusion input
+        extrudes = rootComp.features.extrudeFeatures
+        extInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        
+        # Define that the extent is a distance extent of 5 cm.
+        distance = adsk.core.ValueInput.createByReal(5)
+        extInput.setDistanceExtent(False, distance)
+        
+        # Create the extrusion.
+        ext = extrudes.add(extInput)
+        
+        # Get the end face of the extrusion
+        endFaces = ext.endFaces
+        endFace = endFaces.item(0)
+        
+        # Create a construction plane by offsetting the end face
+        planes = rootComp.constructionPlanes
+        planeInput = planes.createInput()
+        offsetVal = adsk.core.ValueInput.createByString('2 cm')
+        planeInput.setByOffset(endFace, offsetVal)
+        offsetPlane = planes.add(planeInput)
+        
+        # Create a sketch on the new construction plane and add four sketch points on it
+        offsetSketch = sketches.add(offsetPlane)
+        offsetSketchPoints = offsetSketch.sketchPoints
+        sPt0 = offsetSketchPoints.add(adsk.core.Point3D.create(1, 0, 0))
+        sPt1 = offsetSketchPoints.add(adsk.core.Point3D.create(0, 1, 0))
+        sPt2 = offsetSketchPoints.add(adsk.core.Point3D.create(-1, 0, 0))
+        sPt3 = offsetSketchPoints.add(adsk.core.Point3D.create(0, -1, 0))
+        
+        # Add the four sketch points into a collection
+        ptColl = adsk.core.ObjectCollection.create()
+        ptColl.add(sPt0)
+        ptColl.add(sPt1)
+        ptColl.add(sPt2)
+        ptColl.add(sPt3)
+        
+        # Create a hole input
+        holes = rootComp.features.holeFeatures
+        holeInput = holes.createSimpleInput(adsk.core.ValueInput.createByString('2 mm'))
+        holeInput.setPositionBySketchPoints(ptColl)
+        holeInput.setDistanceExtent(distance)
+        
+        hole = holes.add(holeInput)
+    
+    except:
+        if ui:
+
+            ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
+
