@@ -1,6 +1,5 @@
 #Author-Wes Hinchman
-#Description-I was trying to make a simple 3D box so that I can test the heat mapping feature
-            #but now we are here...
+#Description-I was trying to make a simple 3D box so that I can test the heat mapping feature but now we are here...
 
 from random import seed
 import adsk.core, adsk.fusion, traceback
